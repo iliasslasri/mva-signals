@@ -4,34 +4,29 @@ import torch.nn.functional as F
 
 
 class DumbSignalModel(nn.Module):
-    def __init__(self, n_classes=6, n_channels=2, n_samples=128):
+    def __init__(self, n_classes=6, n_channels=2):
         """
-        Simple model to test the training pipeline.
-
-        Args:
-            n_classes (int): number of output classes
-            n_channels (int): number of input channels (I/Q)
-            n_samples (int): length of the input signal
+        Progressive time-reducing 1D CNN.
         """
         super().__init__()
+        self.conv1 = nn.Conv1d(n_channels, 16, kernel_size=7, stride=2, padding=3)
+        self.conv2 = nn.Conv1d(16, 32, kernel_size=5, stride=2, padding=2)
+        self.conv3 = nn.Conv1d(32, 64, kernel_size=3, stride=2, padding=1)
+        self.conv4 = nn.Conv1d(64, 64, kernel_size=3, stride=2, padding=1)
+        self.conv5 = nn.Conv1d(64, 32, kernel_size=3, stride=2, padding=1)
+        self.conv6 = nn.Conv1d(32, 16, kernel_size=3, stride=2, padding=1)
 
-        self.conv1 = nn.Conv1d(
-            in_channels=n_channels, out_channels=4, kernel_size=3, padding=1
-        )
-        self.conv2 = nn.Conv1d(in_channels=4, out_channels=8, kernel_size=3, padding=1)
-
-        self.pool = nn.AdaptiveAvgPool1d(1)  # reduces T -> 1
-
-        self.fc = nn.Linear(8, n_classes)  # 8 features -> n_classes
+        self.pool = nn.AdaptiveAvgPool1d(1)  # now T=1
+        self.fc = nn.Linear(16, n_classes)
 
     def forward(self, x):
-        """
-        x: [B, C, T]
-        returns: [B, n_classes]
-        """
-        x = F.relu(self.conv1(x))
-        x = F.relu(self.conv2(x))
-        x = self.pool(x)  # [B, 8, 1]
-        x = x.view(x.size(0), -1)  # [B, 8]
-        x = self.fc(x)  # [B, n_classes]
+        x = F.relu(self.conv1(x))  # [B,16,T/2]
+        x = F.relu(self.conv2(x))  # [B,32,T/4]
+        x = F.relu(self.conv3(x))  # [B,64,T/8]
+        x = F.relu(self.conv4(x))  # [B,64,T/16]
+        x = F.relu(self.conv5(x))  # [B,32,T/32]
+        x = F.relu(self.conv6(x))  # [B,16,T/64]
+        x = self.pool(x)  # [B,16,1]
+        x = x.view(x.size(0), -1)  # [B,16]
+        x = self.fc(x)  # [B,n_classes]
         return x
