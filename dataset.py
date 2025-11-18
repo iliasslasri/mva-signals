@@ -33,7 +33,9 @@ class SignalsDataset(Dataset):
         # TODO add STFT ?
 
         # Convertir en Tensor
-        signal = torch.tensor(signal, dtype=torch.float32)
+        signal = torch.tensor(signal, dtype=torch.float32).transpose(
+            -1, -2
+        )  # (L, 2) -> (2, L)
         label = torch.tensor(label, dtype=torch.int8)  # garde int8
         snr = torch.tensor(snr, dtype=torch.float32)
 
