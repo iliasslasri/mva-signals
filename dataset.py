@@ -47,9 +47,6 @@ class SignalsDataset(Dataset):
             signal = torch.view_as_real(signal)
             signal = signal.permute(2, 0, 1, 3).contiguous()
             signal = signal.view(signal.size(0), signal.size(1), -1)
-            import ipdb
-
-            ipdb.set_trace()
         label = torch.tensor(label, dtype=torch.int8)  # garde int8
         snr = torch.tensor(snr, dtype=torch.float32)
 
