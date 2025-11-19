@@ -1,5 +1,6 @@
 import os
 import time
+
 import torch
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
@@ -61,8 +62,8 @@ def main():
     ckpt_path = os.path.join(log_dir, "checkpoint.pt")
 
     # Load datasets
-    train_dataset = SignalsDataset(train_path)
-    val_dataset = SignalsDataset(val_path)
+    train_dataset = SignalsDataset(train_path, "stft")
+    val_dataset = SignalsDataset(val_path, "stft")
 
     model = DumbSignalModel(n_classes=6, n_channels=2)
     summary(model, input_data=train_dataset[0][0].unsqueeze(0))
@@ -76,7 +77,7 @@ def main():
     loss_fn = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters())
 
-    # Training Loop 
+    # Training Loop
     for epoch in range(n_epochs):
         for signals, labels, snr in train_loader:
             signals = signals.to(device)
@@ -105,9 +106,7 @@ def main():
             )
 
     # Save final checkpoint
-    save_checkpoint(
-        model, optimizer, n_epochs - 1, loss_value.item(), path=ckpt_path
-    )
+    save_checkpoint(model, optimizer, n_epochs - 1, loss_value.item(), path=ckpt_path)
 
 
 if __name__ == "__main__":
