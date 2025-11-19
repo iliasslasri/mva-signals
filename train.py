@@ -7,6 +7,7 @@ from torch.utils.tensorboard import SummaryWriter
 from torchinfo import summary
 
 from dataset import SignalsDataset
+from DSFT_model import DSFTSignalModel
 from dump_model import DumbSignalModel
 
 
@@ -65,8 +66,8 @@ def main():
     train_dataset = SignalsDataset(train_path, "stft")
     val_dataset = SignalsDataset(val_path, "stft")
 
-    model = DumbSignalModel(n_classes=6, n_channels=2)
-    summary(model, input_data=train_dataset[0][0].unsqueeze(0))
+    model = DSFTSignalModel(n_classes=6, n_channels=2)
+    summary(model, input_data=torch.zeros((16, 2, 7, 7)))
     model.train()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

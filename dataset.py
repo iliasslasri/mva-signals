@@ -45,7 +45,7 @@ class SignalsDataset(Dataset):
                 return_complex=True,
             )
             signal = torch.view_as_real(signal)
-            signal = signal.permute(2, 0, 1, 3).contiguous()
+            signal = signal.permute(0, 2, 1, 3).contiguous()
             signal = signal.view(signal.size(0), signal.size(1), -1)
         label = torch.tensor(label, dtype=torch.int8)  # garde int8
         snr = torch.tensor(snr, dtype=torch.float32)
