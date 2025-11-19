@@ -80,6 +80,7 @@ def main():
 
     # Training Loop
     for epoch in range(n_epochs):
+        step = 0
         for signals, labels, snr in train_loader:
             signals = signals.to(device)
             labels = labels.to(device)
@@ -90,6 +91,10 @@ def main():
             optimizer.zero_grad()
             loss_value.backward()
             optimizer.step()
+            writer.add_scalar(
+                "Loss/train_step", loss_value.item(), step + epoch * len(train_loader)
+            )
+            step += 1
 
         # Compute validation metrics
         val_loss, val_acc = validate(model, val_loader, device, loss_fn)
