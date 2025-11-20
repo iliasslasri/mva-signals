@@ -9,9 +9,9 @@ from torchinfo import summary
 
 from dataset import SignalsDataset
 from DSFT_model import DSFTSignalModel
-from dump_model import DumbSignalModel
+from dump_model import DumpSignalModel
 from utils import count_n_param
-
+from models import CNN_LSTM_SNR_Model, STFTSignalModel
 
 def save_checkpoint(model, optimizer, epoch, loss, path):
     torch.save(
@@ -32,12 +32,16 @@ def validate(model, dataloader, device, loss_fn):
     correct = 0
     n = 0
 
+    snr_correct = {}
+    snr_total = {}
+
     with torch.no_grad():
         for signals, labels, snr in dataloader:
             signals = signals.to(device)
             labels = labels.to(device)
+            snr = snr.to(device).unsqueeze(1)  # shape [B,1]
 
-            outputs = model(signals)
+            outputs = model(signals, snr)
             loss = loss_fn(outputs, labels.long())
             total_loss += loss.item() * signals.size(0)
 
@@ -45,17 +49,34 @@ def validate(model, dataloader, device, loss_fn):
             correct += (preds == labels).sum().item()
             n += labels.size(0)
 
+            # Track per-SNR accuracy
+            for s, p, l in zip(snr, preds, labels):
+                s = int(s.item())
+                if s not in snr_correct:
+                    snr_correct[s] = 0
+                    snr_total[s] = 0
+                snr_correct[s] += (p == l).item()
+                snr_total[s] += 1
+
     avg_loss = total_loss / n
     accuracy = correct / n
+
+    # Compute per-SNR accuracy
+    snr_acc = {s: snr_correct[s] / snr_total[s] for s in snr_correct}
+
     model.train()
-    return avg_loss, accuracy
+    return avg_loss, accuracy, snr_acc
+
 
 
 def main():
-    batch_size = 1024
-    n_epochs = 20
+    batch_size = 512
+    n_epochs = 100
     train_path = "train.hdf5"
     val_path = "validation.hdf5"
+    transform = None  # None or "stft"
+    window_size = 256
+    magnitude_only: bool = True 
 
     # ----------------------------
     # Parse CLI arguments
@@ -63,6 +84,10 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--name", type=str, default=None, help="Optional name added to the run folder"
+    )
+    parser.add_argument(
+        "--load", type=str, default=None,
+        help="Path to a checkpoint to load (absolute or relative)"
     )
     args = parser.parse_args()
 
@@ -72,9 +97,9 @@ def main():
     timestamp = time.strftime("%Y%m%d-%H%M%S")
 
     if args.name is None:
-        final_run_name = f"run_{timestamp}"
+        final_run_name = f"{timestamp}_run"
     else:
-        final_run_name = f"{args.name}_{timestamp}"
+        final_run_name = f"{timestamp}_{args.name}"
 
     log_dir = os.path.join("runs", final_run_name)
     os.makedirs(log_dir, exist_ok=True)
@@ -84,29 +109,54 @@ def main():
     print(f"Logging to {log_dir}")
 
     # Load datasets
-    train_dataset = SignalsDataset(train_path, "stft")
-    val_dataset = SignalsDataset(val_path, "stft")
+    train_dataset = SignalsDataset(train_path, transform, magnitude_only=magnitude_only, window_size=window_size)
+    val_dataset = SignalsDataset(val_path, transform, magnitude_only=magnitude_only, window_size=window_size)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    model = DSFTSignalModel(n_classes=6, n_channels=2)
-    summary(model, input_data=torch.zeros((16, 2, 7, 7)))
+    model = CNN_LSTM_SNR_Model(n_classes=6, n_channels=2, hidden_size=64)
+    # summary(model, input_data=torch.zeros((16, 2, 7, 7)))
+    print(f"Model has {count_n_param(model):,} parameters")
     model.train()
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # ----------------------------
+    # Load checkpoint if provided
+    # ----------------------------
+    if args.load is not None:
+        ckpt_path_load = os.path.abspath(args.load)
+        print(f"Loading checkpoint from: {ckpt_path_load}")
+
+        if not os.path.isfile(ckpt_path_load):
+            raise FileNotFoundError(f"Checkpoint not found: {ckpt_path_load}")
+
+        checkpoint = torch.load(ckpt_path_load, map_location=device)
+
+        model.load_state_dict(checkpoint["model_state"])
+        print(f"Loaded model weights from epoch {checkpoint['epoch']+1}")
+
+        # Later we will load optimizer *after* creating it
+    else:
+        checkpoint = None
+
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
     model.to(device)
 
     loss_fn = torch.nn.CrossEntropyLoss()
-    optimizer = torch.optim.AdamW(model.parameters(), lr=0.001, weight_decay=1e-4)
+    optimizer = torch.optim.Adam(model.parameters())
 
+    # If we loaded a checkpoint, restore optimizer state
+    if checkpoint is not None and "optimizer_state" in checkpoint:
+        optimizer.load_state_dict(checkpoint["optimizer_state"])
+        print("Loaded optimizer state")
     # Training Loop
     for epoch in range(n_epochs):
         step = 0
         for signals, labels, snr in train_loader:
             signals = signals.to(device)
             labels = labels.to(device)
+            snr = snr.to(device).unsqueeze(1)  # shape [B,1]
 
-            outputs = model(signals)
+            outputs = model(signals, snr)
             loss_value = loss_fn(outputs, labels.long())
 
             optimizer.zero_grad()
@@ -118,25 +168,29 @@ def main():
             step += 1
 
         # Compute validation metrics
-        val_loss, val_acc = validate(model, val_loader, device, loss_fn)
+        val_loss, val_acc, snr_acc = validate(model, val_loader, device, loss_fn)
 
         # Logging
         writer.add_scalar("Loss/train", loss_value.item(), epoch)
         writer.add_scalar("Loss/val", val_loss, epoch)
         writer.add_scalar("Accuracy/val", val_acc, epoch)
 
+        # Log per-SNR accuracy
+        for s, acc in snr_acc.items():
+            writer.add_scalar(f"Accuracy/val_SNR_{s}dB", acc, epoch)
+
         if (epoch + 1) % 10 == 0:
+            snr_acc_str = " | ".join([f"SNR={s}dB:{acc:.3f}" for s, acc in snr_acc.items()])
             print(
                 f"[{epoch+1}/{n_epochs}] "
                 f"train_loss={loss_value.item():.4f} | "
-                f"val_loss={val_loss:.4f} | val_acc={val_acc:.4f}"
+                f"val_loss={val_loss:.4f} | val_acc={val_acc:.4f} | {snr_acc_str}"
             )
+
 
     # Save final checkpoint
     save_checkpoint(model, optimizer, n_epochs - 1, loss_value.item(), path=ckpt_path)
 
 
 if __name__ == "__main__":
-    main()
-    main()
     main()

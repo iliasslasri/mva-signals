@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-class DumbSignalModel(nn.Module):
+class DumpSignalModel(nn.Module):
     def __init__(self, n_classes=6, n_channels=2):
         """
         Progressive time-reducing 1D CNN.
