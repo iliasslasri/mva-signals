@@ -52,8 +52,8 @@ def validate(model, dataloader, device, loss_fn):
 
 
 def main():
-    batch_size = 128
-    n_epochs = 1000
+    batch_size = 1024
+    n_epochs = 20
     train_path = "train.hdf5"
     val_path = "validation.hdf5"
 
@@ -97,7 +97,7 @@ def main():
     model.to(device)
 
     loss_fn = torch.nn.CrossEntropyLoss()
-    optimizer = torch.optim.AdamW(model.parameters(), lr=0.001, weight_decay=1e-5)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=0.001, weight_decay=1e-4)
 
     # Training Loop
     for epoch in range(n_epochs):
