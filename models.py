@@ -37,8 +37,9 @@ class STFTSignalModel(nn.Module):
 
 
 class CNN_LSTM_SNR_Model(nn.Module):
-    def __init__(self, n_classes=6, n_channels=2, hidden_size=64, snr_emb_dim=16):
+    def __init__(self, n_classes=6, n_channels=2, hidden_size=64, snr_emb_dim=16, include_snr=True):
         super().__init__()
+        self.include_snr = include_snr
         self.conv1 = nn.Conv1d(n_channels, 32, kernel_size=7, stride=2, padding=3)
         self.bn1 = nn.BatchNorm1d(32)
         self.conv2 = nn.Conv1d(32, 64, kernel_size=5, stride=2, padding=2)
@@ -46,9 +47,12 @@ class CNN_LSTM_SNR_Model(nn.Module):
 
         self.lstm = nn.LSTM(input_size=64, hidden_size=hidden_size,
                             batch_first=True, bidirectional=True)
+        if include_snr:
+            self.snr_emb = nn.Linear(1, snr_emb_dim)  # embed scalar SNR
+            self.fc1 = nn.Linear(hidden_size*2 + snr_emb_dim, 128)
+        else:
+            self.fc1 = nn.Linear(hidden_size*2, 128)
 
-        self.snr_emb = nn.Linear(1, snr_emb_dim)  # embed scalar SNR
-        self.fc1 = nn.Linear(hidden_size*2 + snr_emb_dim, 128)
         self.fc2 = nn.Linear(128, n_classes)
 
     def forward(self, x, snr):
@@ -57,7 +61,10 @@ class CNN_LSTM_SNR_Model(nn.Module):
         x = x.permute(0, 2, 1)  # [B, T, C] for LSTM
         x, _ = self.lstm(x)
         x = x.mean(dim=1)       # [B, hidden*2]
-
+        if not self.include_snr:
+            x = F.relu(self.fc1(x))
+            x = self.fc2(x)
+            return x
         snr = snr.float()       # ensure float
         if len(snr.shape) == 1:
             snr = snr.unsqueeze(1)

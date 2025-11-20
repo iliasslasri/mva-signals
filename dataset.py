@@ -6,7 +6,7 @@ import torch
 import math
 
 class SignalsDataset(Dataset):
-    def __init__(self, path_to_data, transform=None, magnitude_only=True, window_size=256):
+    def __init__(self, path_to_data, transform=None, magnitude_only=True, window_size=256, exclude_zero_snr=False, only_one_snr=-1):
         """
         Dataset PyTorch for signalsfrom a HDF5 file.
         we keep labels in int8, snr in int16.
@@ -21,7 +21,22 @@ class SignalsDataset(Dataset):
             self.signals = np.array(f["signaux"], dtype=np.float32)  # (N, 2, L)
             self.labels = np.array(f["labels"], dtype=np.int8)  # (N,)
             self.snr = np.array(f["snr"], dtype=np.int16)  # (N,)
+        
+        if only_one_snr != -1:
+            mask = self.snr == only_one_snr
+            before = len(self.snr)
+            self.signals = self.signals[mask]
+            self.labels = self.labels[mask]
+            self.snr = self.snr[mask]
+            print(f"Filtered dataset to only include SNR = {only_one_snr}, kept {len(self.snr)} samples out of {before}")
 
+        if exclude_zero_snr:
+            mask = self.snr != 0
+            before = len(self.snr)
+            self.signals = self.signals[mask]
+            self.labels = self.labels[mask]
+            self.snr = self.snr[mask]
+            print(f"Removed {before - len(self.snr)} samples with SNR = 0")
         print(
             f"Dataset loaded: {len(self.signals)} samples, each of shape {self.signals[0].shape}"
         )

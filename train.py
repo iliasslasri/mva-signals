@@ -74,9 +74,16 @@ def main():
     n_epochs = 100
     train_path = "train.hdf5"
     val_path = "validation.hdf5"
+    
+    # STFT parameters
     transform = None  # None or "stft"
     window_size = 256
     magnitude_only: bool = True 
+    
+    # Data filtering options
+    exclude_zero_snr: bool = True
+    only_one_snr: int = -1 # -1 to include all, or snr in {0, 10, 20, 30}
+    include_snr: bool = False  # Whether to provide SNR as input to the model
 
     # ----------------------------
     # Parse CLI arguments
@@ -109,11 +116,11 @@ def main():
     print(f"Logging to {log_dir}")
 
     # Load datasets
-    train_dataset = SignalsDataset(train_path, transform, magnitude_only=magnitude_only, window_size=window_size)
-    val_dataset = SignalsDataset(val_path, transform, magnitude_only=magnitude_only, window_size=window_size)
+    train_dataset = SignalsDataset(train_path, transform, magnitude_only=magnitude_only, window_size=window_size, exclude_zero_snr=exclude_zero_snr, only_one_snr=only_one_snr)
+    val_dataset = SignalsDataset(val_path, transform, magnitude_only=magnitude_only, window_size=window_size, exclude_zero_snr=exclude_zero_snr, only_one_snr=only_one_snr)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    model = CNN_LSTM_SNR_Model(n_classes=6, n_channels=2, hidden_size=64)
+    model = CNN_LSTM_SNR_Model(n_classes=6, n_channels=2, hidden_size=64, include_snr=include_snr)
     # summary(model, input_data=torch.zeros((16, 2, 7, 7)))
     print(f"Model has {count_n_param(model):,} parameters")
     model.train()
