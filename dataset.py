@@ -6,7 +6,7 @@ import torch
 import math
 
 class SignalsDataset(Dataset):
-    def __init__(self, path_to_data, transform=None, magnitude_only=True, window_size=256, exclude_zero_snr=False, only_one_snr=-1):
+    def __init__(self, path_to_data, transform=None, magnitude_only=True, window_size=256, exclude_zero_snr=False, only_one_snr=-1, augment=True):
         """
         Dataset PyTorch for signalsfrom a HDF5 file.
         we keep labels in int8, snr in int16.
@@ -16,6 +16,7 @@ class SignalsDataset(Dataset):
         self.transform = transform
         self.magnitude_only = magnitude_only
         self.nfft = window_size
+        self.augment = augment
 
         with h5py.File(self.path, "r") as f:
             self.signals = np.array(f["signaux"], dtype=np.float32)  # (N, 2, L)
@@ -53,7 +54,8 @@ class SignalsDataset(Dataset):
         signal = torch.tensor(signal, dtype=torch.float32).transpose(
             -1, -2
         )  # (L, 2) -> (2, L)
-        signal = random_rotate_iq(signal) # Data augmentation: random IQ rotation
+        if self.augment:
+            signal = random_rotate_iq(signal) # Data augmentation: random IQ rotation
         if self.transform == "stft":
             spec = torch.stft(
                 signal,
