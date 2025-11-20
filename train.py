@@ -50,7 +50,7 @@ def validate(model, dataloader, device, loss_fn):
 
 
 def main():
-    batch_size = 300
+    batch_size = 128
     n_epochs = 1000
     train_path = "train.hdf5"
     val_path = "validation.hdf5"

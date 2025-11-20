@@ -36,18 +36,18 @@ class SignalsDataset(Dataset):
             -1, -2
         )  # (L, 2) -> (2, L)
         if self.transform == "stft":
-            signal = torch.stft(
+            spec = torch.stft(
                 signal,
-                window=torch.hann_window(256),
                 n_fft=256,
                 hop_length=128,
                 win_length=256,
+                window=torch.hann_window(256, device=signal.device),
                 return_complex=True,
-            )
-            signal = torch.view_as_real(signal)
-            signal = signal.permute(0, 2, 1, 3).contiguous()
-            signal = signal.view(signal.size(0), signal.size(1), -1)
-        label = torch.tensor(label, dtype=torch.int8)  # garde int8
-        snr = torch.tensor(snr, dtype=torch.float32)
+            )  # (C, F, T)
+            spec = torch.view_as_real(spec)  # (C, F, T, 2)
+            spec = spec.permute(0, 2, 1, 3).contiguous()
+            signal = spec.view(spec.size(0), spec.size(1), -1)
+        label = torch.tensor(label, dtype=torch.int8)  # keep it as int8
+        snr = torch.tensor(snr, dtype=torch.int16)  # keep it as int16
 
         return signal, label, snr
