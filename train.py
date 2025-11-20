@@ -1,3 +1,4 @@
+import argparse
 import os
 import time
 
@@ -53,15 +54,34 @@ def validate(model, dataloader, device, loss_fn):
 def main():
     batch_size = 128
     n_epochs = 1000
-    train_path = "samples.hdf5"
-    val_path = "samples.hdf5"
+    train_path = "train.hdf5"
+    val_path = "validation.hdf5"
 
-    run_name = time.strftime("run_%Y%m%d-%H%M%S")
-    log_dir = os.path.join("runs", run_name)
+    # ----------------------------
+    # Parse CLI arguments
+    # ----------------------------
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--name", type=str, default=None, help="Optional name added to the run folder"
+    )
+    args = parser.parse_args()
+
+    # ----------------------------
+    # Build run name
+    # ----------------------------
+    timestamp = time.strftime("%Y%m%d-%H%M%S")
+
+    if args.name is None:
+        final_run_name = f"run_{timestamp}"
+    else:
+        final_run_name = f"{args.name}_{timestamp}"
+
+    log_dir = os.path.join("runs", final_run_name)
     os.makedirs(log_dir, exist_ok=True)
 
     writer = SummaryWriter(log_dir=log_dir)
     ckpt_path = os.path.join(log_dir, "checkpoint.pt")
+    print(f"Logging to {log_dir}")
 
     # Load datasets
     train_dataset = SignalsDataset(train_path, "stft")
@@ -117,5 +137,6 @@ def main():
 
 
 if __name__ == "__main__":
+    main()
     main()
     main()
