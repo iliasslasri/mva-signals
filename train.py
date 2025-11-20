@@ -9,6 +9,7 @@ from torchinfo import summary
 from dataset import SignalsDataset
 from DSFT_model import DSFTSignalModel
 from dump_model import DumbSignalModel
+from utils import count_n_param
 
 
 def save_checkpoint(model, optimizer, epoch, loss, path):
@@ -116,4 +117,5 @@ def main():
 
 
 if __name__ == "__main__":
+    main()
     main()
