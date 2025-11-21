@@ -8,8 +8,9 @@
 - Until now, frequency domain (STFT) models show mediocre performance.
 
 - How the data augmentation affect the performance? 
-    - Data augmentation accelerates the generalization of the model.
-    
+    - Data augmentation accelerates the generalization of the model, so training is reduced, we achieve better performance on the validation set in 1/3 of the training time.
+    - We get 3% better in accuracy on the test set with 1/3 of the training time.
+
 
 - To train the model we combine the train set and samples set, total: 30200 sample.
 
