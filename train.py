@@ -11,7 +11,7 @@ from dataset import SignalsDataset
 from DSFT_model import DSFTSignalModel
 from dump_model import DumpSignalModel
 from utils import count_n_param
-from models import CNN_LSTM_SNR_Model, STFTSignalModel
+from models import CNN_LSTM_SNR_Model, STFT_CNN_LSTM_SNR_Model
 
 def save_checkpoint(model, optimizer, epoch, loss, path):
     torch.save(
@@ -71,7 +71,7 @@ def validate(model, dataloader, device, loss_fn):
 
 def main():
     batch_size = 512
-    n_epochs = 200
+    n_epochs = 500
     train_paths = ["train.hdf5", "samples.hdf5"]
     val_path = "validation.hdf5"
     
@@ -84,7 +84,7 @@ def main():
     exclude_zero_snr: bool = False
     only_one_snr: int = -1 # -1 to include all, or snr in {0, 10, 20, 30}
     include_snr: bool = True  # Whether to provide SNR as input to the model
-    augment: bool = False  # Whether to apply data augmentation
+    augment: bool = True  # Whether to apply data augmentation
 
     # ----------------------------
     # Parse CLI arguments
@@ -117,14 +117,13 @@ def main():
     print(f"Logging to {log_dir}")
 
     # Load datasets
-    train_dataset = SignalsDataset(train_path, transform, magnitude_only=magnitude_only, window_size=window_size, exclude_zero_snr=exclude_zero_snr, only_one_snr=only_one_snr, augment=augment)
+    train_dataset = SignalsDataset(train_paths, transform, magnitude_only=magnitude_only, window_size=window_size, exclude_zero_snr=exclude_zero_snr, only_one_snr=only_one_snr, augment=augment)
     val_dataset = SignalsDataset(val_path, transform, magnitude_only=magnitude_only, window_size=window_size, exclude_zero_snr=exclude_zero_snr, only_one_snr=only_one_snr, augment=False)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
     
     # Build model
     model = CNN_LSTM_SNR_Model(n_classes=6, n_channels=2, hidden_size=64, include_snr=include_snr)
-    # summary(model, input_data=torch.zeros((16, 2, 7, 7)))
     print(f"Model has {count_n_param(model):,} parameters")
     model.train()
 
@@ -142,8 +141,6 @@ def main():
 
         model.load_state_dict(checkpoint["model_state"])
         print(f"Loaded model weights from epoch {checkpoint['epoch']+1}")
-
-        # Later we will load optimizer *after* creating it
     else:
         checkpoint = None
 
@@ -158,7 +155,10 @@ def main():
     if checkpoint is not None and "optimizer_state" in checkpoint:
         optimizer.load_state_dict(checkpoint["optimizer_state"])
         print("Loaded optimizer state")
+
+    # ----------------------------
     # Training Loop
+    # ----------------------------
     for epoch in range(n_epochs):
         step = 0
         for signals, labels, snr in train_loader:
