@@ -69,6 +69,22 @@ class SignalsDataset(Dataset):
         )  # (L, 2) -> (2, L)
         if self.augment:
             signal = random_rotate_iq(signal) # Data augmentation: random IQ rotation
+            
+            # SNR-based noise augmentation
+            if torch.rand(1).item() < 0.5:
+                if snr.item() == 30:
+                    new_snr = torch.tensor(np.random.choice([20, 10, 0]), dtype=torch.float32)
+                    signal = add_noise_to_snr(signal, snr.item(), new_snr.item())
+                    snr = new_snr
+                elif snr.item() == 20:
+                    new_snr = torch.tensor(np.random.choice([10, 0]), dtype=torch.float32)
+                    signal = add_noise_to_snr(signal, snr.item(), new_snr.item())
+                    snr = new_snr
+                elif snr.item() == 10:
+                    new_snr = torch.tensor(0, dtype=torch.float32)
+                    signal = add_noise_to_snr(signal, snr.item(), new_snr.item())
+                    snr = new_snr
+
         if self.transform == "stft":
             spec = torch.stft(
                 signal,
@@ -109,3 +125,36 @@ def rotate_iq(signal, angle_rad):
 def random_rotate_iq(signal):
     angle = 2 * math.pi * torch.rand(1).item()  # random angle 0 -> 2π
     return rotate_iq(signal, angle)
+
+
+def add_noise_to_snr(signal, current_snr, target_snr):
+    """
+    Add Gaussian noise to the signal to simulate a lower SNR.
+    signal: tensor of shape [2, L]
+    current_snr: float, current SNR in dB
+    target_snr: float, target SNR in dB
+    """
+    if target_snr >= current_snr:
+        return signal  # don't increase SNR
+
+    # Calculate linear scale SNR
+    current_linear = 10 ** (current_snr / 10)
+    target_linear = 10 ** (target_snr / 10)
+    
+    # Signal power
+    power_signal = signal.pow(2).mean()
+    
+    # Noise power required to reach target SNR
+    power_noise = power_signal / target_linear
+    
+    # Current noise power
+    noise_current = power_signal / current_linear
+    
+    # Additional noise to add
+    additional_noise_power = max(0, power_noise - noise_current)
+    
+    if additional_noise_power > 0:
+        noise = torch.randn_like(signal) * torch.sqrt(additional_noise_power)
+        return signal + noise
+    else:
+        return signal
