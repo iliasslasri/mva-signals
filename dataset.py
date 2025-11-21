@@ -6,22 +6,35 @@ import torch
 import math
 
 class SignalsDataset(Dataset):
-    def __init__(self, path_to_data, transform=None, magnitude_only=True, window_size=256, exclude_zero_snr=False, only_one_snr=-1, augment=True):
+    def __init__(self, path_to_data: list[str] | str, transform=None, magnitude_only=True, window_size=256, exclude_zero_snr=False, only_one_snr=-1, augment=True):
         """
         Dataset PyTorch for signalsfrom a HDF5 file.
         we keep labels in int8, snr in int16.
         """
         super().__init__()
-        self.path = path_to_data
+        self.paths = path_to_data
         self.transform = transform
         self.magnitude_only = magnitude_only
         self.nfft = window_size
         self.augment = augment
 
-        with h5py.File(self.path, "r") as f:
-            self.signals = np.array(f["signaux"], dtype=np.float32)  # (N, 2, L)
-            self.labels = np.array(f["labels"], dtype=np.int8)  # (N,)
-            self.snr = np.array(f["snr"], dtype=np.int16)  # (N,)
+        if isinstance(path_to_data, list):
+            self.signals = []
+            self.labels = []
+            self.snr = []
+            for path in path_to_data:
+                with h5py.File(path, "r") as f:
+                    self.signals.append(np.array(f["signaux"], dtype=np.float32))  # (N, 2, L)
+                    self.labels.append(np.array(f["labels"], dtype=np.int8))  # (N,)
+                    self.snr.append(np.array(f["snr"], dtype=np.int16))  # (N,)
+            self.signals = np.concatenate(self.signals, axis=0)
+            self.labels = np.concatenate(self.labels, axis=0)
+            self.snr =  np.concatenate(self.snr, axis=0)
+        else:
+            with h5py.File(self.paths, "r") as f:
+                self.signals = np.array(f["signaux"], dtype=np.float32)  # (N, 2, L)
+                self.labels = np.array(f["labels"], dtype=np.int8)  # (N,)
+                self.snr = np.array(f["snr"], dtype=np.int16)  # (N,)
         
         if only_one_snr != -1:
             mask = self.snr == only_one_snr

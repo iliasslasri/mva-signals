@@ -71,8 +71,8 @@ def validate(model, dataloader, device, loss_fn):
 
 def main():
     batch_size = 512
-    n_epochs = 100
-    train_path = "train.hdf5"
+    n_epochs = 200
+    train_paths = ["train.hdf5", "samples.hdf5"]
     val_path = "validation.hdf5"
     
     # STFT parameters
@@ -197,6 +197,13 @@ def main():
                 f"val_loss={val_loss:.4f} | val_acc={val_acc:.4f} | {snr_acc_str}"
             )
 
+        # -------------------------
+        # Save checkpoint every 50 epochs
+        # -------------------------
+        if (epoch + 1) % 50 == 0:
+            ckpt_path_epoch = os.path.join(log_dir, f"checkpoint_epoch{epoch+1}.pt")
+            save_checkpoint(model, optimizer, epoch, loss_value.item(), ckpt_path_epoch)
+            print(f"Saved checkpoint at epoch {epoch+1}: {ckpt_path_epoch}")
 
     # Save final checkpoint
     save_checkpoint(model, optimizer, n_epochs - 1, loss_value.item(), path=ckpt_path)
