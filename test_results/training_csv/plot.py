@@ -96,3 +96,49 @@ for spine in ["top", "right"]:
 plt.tight_layout()
 plt.savefig("val_acc_all_snr_ma.png", dpi=300, bbox_inches="tight")
 plt.show()
+
+
+# --- Paths to your CSV files ---
+train_csv = "20251121-131516_cnn_lstm_snr_augment_snr_validation_loss.csv"  # replace with your training loss CSV path
+val_csv = "20251121-131516_cnn_lstm_snr_augment_snr_trainlossperepoch.csv"  # replace with your validation loss CSV path
+
+# --- Load CSVs ---
+df_train = pd.read_csv(train_csv)
+df_val = pd.read_csv(val_csv)
+
+
+# --- Optional: smooth with moving average ---
+def moving_average(data, window_size=10):
+    return data.rolling(window=window_size, min_periods=1, center=True).mean()
+
+
+df_train["Value_smooth"] = moving_average(df_train["Value"], window_size=10)
+df_val["Value_smooth"] = moving_average(df_val["Value"], window_size=10)
+
+# --- Plot ---
+plt.figure(figsize=(8, 5))
+plt.plot(
+    df_train["Step"],
+    df_train["Value_smooth"],
+    label="Training Loss",
+    color="red",
+    linewidth=2,
+)
+plt.plot(
+    df_val["Step"],
+    df_val["Value_smooth"],
+    label="Validation Loss",
+    color="blue",
+    linewidth=2,
+)
+
+plt.xlabel("Training Step")
+plt.ylabel("Loss")
+plt.title("Training and Validation Loss")
+plt.grid(True, linestyle="--", alpha=0.4)
+plt.legend()
+plt.tight_layout()
+
+# --- Save figure ---
+plt.savefig("training_validation_loss.png", dpi=300, bbox_inches="tight")
+plt.show()
