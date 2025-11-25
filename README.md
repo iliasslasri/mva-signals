@@ -164,9 +164,10 @@ Test Accuracy : 86.57%
    - Classes 3-4-5 (modulations QAM/GMSK)
 
 <p align="center">
-  <img src="./test_results/confusion_matrices.png" width="300">
-  <img src="./test_results/confusion_matrix_overall.png" width="300">
+  <img src="./test_results/confusion_matrices.png" width="500">
+  <img src="./test_results/confusion_matrix_overall.png" width="500">
 </p>
+
 ## 6. Evaluation sur le test set
 
 Le script `test.py` offre une évaluation complète :
