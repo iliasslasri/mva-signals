@@ -122,28 +122,26 @@ Trois approches testées :
 
 #### Configuration : SNR en input + Augmentation
 ```
-Test Accuracy : 84.65%
-Test Loss     : 0.3068
+Test Accuracy : 89.64%
 ```
 
 **Accuracy par classe** :
-- Classe 0 : 87.51%
-- Classe 1 : 75.33%
-- Classe 2 : 88.99%
-- Classe 3 : 87.72%
-- Classe 4 : 78.68%
-- Classe 5 : 89.66%
+- Classe 0 : 95.52%
+- Classe 1 : 95.88%
+- Classe 2 : 86.57%
+- Classe 3 : 88.75%
+- Classe 4 : 85.23%
+- Classe 5 : 84.06%
 
 **Accuracy par SNR** :
-- **SNR 0 dB**  : 40.62% 
-- **SNR 10 dB** : 96.73%
-- **SNR 20 dB** : 99.44%
+- **SNR 0 dB**  : 56.78% 
+- **SNR 10 dB** : 99.23%
+- **SNR 20 dB** : 100.00%
 - **SNR 30 dB** : 100.00%
 
 #### Configuration : SNR en input sans augmentation
 ```
 Test Accuracy : 86.57%
-Test Loss     : 0.2786
 ```
 
 **Accuracy par SNR** :
@@ -156,8 +154,8 @@ Test Loss     : 0.2786
 
 #### Points forts
 1. **Excellentes performances à SNR élevé** : >99% d'accuracy à 20 et 30 dB
-2. **Robustesse au bruit** : Même à 0 dB, le modèle atteint ~45% d'accuracy (vs 16.7% aléatoire)
-3. **Équilibre entre classes** : Pas de déséquilibre majeur (75-90%)
+2. **Robustesse au bruit** : Même à 0 dB, le modèle atteint ~57% d'accuracy (vs 16.7% aléatoire)
+3. **Équilibre entre classes** : Pas de déséquilibre majeur (85-95%) dans la performance de classification
 
 #### Points d'attention
 1. **SNR 0 dB** : Performance limitée mais attendue (signal fortement dégradé)
@@ -165,9 +163,11 @@ Test Loss     : 0.2786
    - Classes 0-1-2 (modulations PSK)
    - Classes 3-4-5 (modulations QAM/GMSK)
 
+<img src="./test_results/confusion_matrices.png" width="700">
+
 ## 6. Evaluation sur le test set
 
-Le script `pred_test.py` offre une évaluation complète :
+Le script `test.py` offre une évaluation complète :
 - Prédictions sur le test set
 - Métriques globales et par SNR/classe
 - Génération automatique de graphiques
@@ -177,7 +177,7 @@ Le script `pred_test.py` offre une évaluation complète :
 ## 7. Conclusions et Perspectives
 
 
-Le projet a permis de développer un système de classification robuste atteignant 84-86% d'accuracy globale, avec d'excellentes performances à SNR élevé (>99% à 20-30 dB).
+Le projet a permis de développer un système de classification robuste atteignant 89% d'accuracy globale, avec d'excellentes performances à SNR élevé (>99% à 20-30 dB).
 
 Apports de l'approche:  
 - L'intégration du SNR comme feature améliore significativement les performances
@@ -191,7 +191,7 @@ Apports de l'approche:
 ```
 .
 ├── train.py              # Script d'entraînement principal
-├── pred_test.py          # Évaluation sur test set
+├── test.py          # Évaluation sur test set
 ├── dataset.py            # DataLoader et augmentation
 ├── models.py             # Architecture CNN-LSTM-SNR
 ├── Other_model.py        # ResNet et modèles STFT
@@ -212,7 +212,7 @@ python train.py --load runs/checkpoints/checkpoint.pt  # Reprendre depuis checkp
 
 **Évaluation** :
 ```bash
-python pred_test.py --checkpoint runs/20241121-123456_run/checkpoint.pt \
+python test.py --checkpoint runs/20241121-123456_run/checkpoint.pt \
                     --test test.hdf5 \
                     --class_names BPSK QPSK 8PSK 16QAM 64QAM GMSK
 ```
