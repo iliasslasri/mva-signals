@@ -32,16 +32,15 @@ Pour améliorer la généralisation, nous avons implémenté deux techniques d'a
    - cette augmentation est appliquée avec probabilité 50%
 
 **Impact de l'augmentation** :
-- Accélération de la convergence (1/3 du temps d'entraînement)
-- Amélioration de l'accuracy sur le test set
-- Meilleure robustesse aux variations de SNR
+- L’augmentation de données accélère la généralisation du modèle, ce qui permet de réduire le temps d’entraînement : nous obtenons de meilleures performances sur l’ensemble de validation en un tiers du temps d’entraînement.
+- Nous obtenons 3% d'amélioration de précision sur l’ensemble de test, toujours avec seulement un tiers du temps d’entraînement.
 
 ## 3. Architecture des Modèles
 
 ### 3.1 Modèle CNN-LSTM avec SNR (Architecture finale)
 
 ```
-Input: [Batch, 2, 2048] (signaux I/Q)
+Input: [Batch, 2, 2048] (signaux I/Q dans le domaine temporelle)
 SNR: [Batch, 1] (valeur du SNR)
 
 ├─ Conv1D Block 1: 2 → 32 channels (kernel=7, stride=2)
@@ -84,7 +83,7 @@ SNR: [Batch, 1] (valeur du SNR)
 #### STFT-CNN-LSTM
 - Transformation en domaine fréquentiel via STFT
 - CNN 2D sur le spectrogramme
-- **Performances médiocres** : la représentation fréquentielle n'a pas apporté d'amélioration
+- **Performances médiocres** : La STFT n’a pas apporté de performance significative car les signaux I/Q utilisés sont relativement courts (2048) et fortement bruités La transformation en spectrogramme entraîne une perte d’information fine sur l’amplitude instantanée, qui sont essentielles pour distinguer certaines modulations. De plus, la résolution temporelle et fréquentielle du STFT est limitée, ce qui réduit la capacité du CNN à capturer les variations rapides caractéristiques des modulations complexes.
 
 ## 4. Entraînement
 
@@ -103,15 +102,16 @@ Trois approches testées :
    - Le modèle reçoit la valeur du SNR en input
    - Permet au modèle d'adapter sa prédiction selon le niveau de bruit
 
-2. **Exclusion des échantillons SNR=0 dB**
-   - Testée mais abandonnée
-   - Dégrade légèrement les performances globales
+2. **Exclusion des échantillons SNR=0 dB ou Entraînement sur un seul SNR**
+   - Testée pour voir si l'entrainement du modèle est degradée a cause de la difficulite des  échantillons avec 0dB, la conclusion est que cela ne change pas la performance du modele sur la validation, on constate meme une légère dégradation les performances globales.
 
-3. **Entraînement sur un seul SNR**
-   - Forte dégradation de la généralisation
-   - Non recommandé
+### 4.3. Entraînement extensive pour une meilleure performance
+  <img src="./test_results/training_csv/val_acc_all_snr_ma.png" width="500">
 
-### 4.3 Suivi des entrainements et validation
+Les plateaux intermédiaires observés dans le graphe de validation accuracy peuvent s’expliquer par le processus d’apprentissage du modèle. Au début de l’entraînement, le modèle apprend rapidement les motifs les plus évidents, ce qui entraîne une hausse rapide de l’accuracy. Ensuite, à mesure qu’il rencontre des exemples plus complexes ou moins fréquents dans les données, il doit ajuster ses représentations internes pour mieux les capturer. Cette phase d’ajustement se traduit par un ralentissement temporaire de l’accuracy, créant des plateaux. Une fois que le modèle réussit à intégrer ces nouvelles structures et variations, l’accuracy reprend sa progression jusqu’à atteindre une performance stable sur l’ensemble de validation. Ces plateaux reflètent donc la phase de consolidation et d’adaptation du modèle aux aspects plus complexes des données.
+
+
+### 4.4 Suivi des entrainements et validation
 - TensorBoard pour le monitoring en temps réel
 - Métriques par SNR et par classe à chaque epoch
 - Sauvegarde des checkpoints réguliers
@@ -120,7 +120,7 @@ Trois approches testées :
 
 ### 5.1 Performance globale
 
-#### Configuration : SNR en input + Augmentation
+#### Configuration : SNR en input avec augmentation SNR et Phase
 ```
 Test Accuracy : 89.64%
 ```
@@ -158,7 +158,7 @@ Test Accuracy : 86.57%
 3. **Équilibre entre classes** : Pas de déséquilibre majeur (85-95%) dans la performance de classification
 
 #### Points d'attention
-1. **SNR 0 dB** : Performance limitée mais attendue (signal fortement dégradé)
+1. **SNR 0 dB** : Performance limitée mais attendue cpmme signal est fortement dégradé
 2. **Matrice de confusion** : Confusions principalement entre classes proches
    - Classes 0-1-2 (modulations PSK)
    - Classes 3-4-5 (modulations QAM/GMSK)
@@ -168,27 +168,19 @@ Test Accuracy : 86.57%
   <img src="./test_results/confusion_matrix_overall.png" width="500">
 </p>
 
-## 6. Evaluation sur le test set
 
-Le script `test.py` offre une évaluation complète :
-- Prédictions sur le test set
-- Métriques globales et par SNR/classe
-- Génération automatique de graphiques
-- Matrices de confusion détaillées
-- Sauvegarde des résultats (.npz)
-
-## 7. Conclusions et Perspectives
+## 6. Conclusions et Perspectives
 
 
 Le projet a permis de développer un système de classification robuste atteignant 89% d'accuracy globale, avec d'excellentes performances à SNR élevé (>99% à 20-30 dB).
 
 Apports de l'approche:  
-- L'intégration du SNR comme feature améliore significativement les performances
-- L'augmentation de données accélère l'entraînement et améliore la généralisation
+- L'intégration du SNR comme feature et le travail dans le domaine temporelle améliore significativement les performances
+- L'augmentation de données (phase aléatoire) accélère l'entraînement et améliore la généralisation, et l'augmentation de données en  dégradant le SNR ameiolre la performance surtout dans le cas de 0dB SNR comme on a plus de données d'entrainement avec 0dB SNR.
 - L'architecture CNN-LSTM capture efficacement les patterns temporels
 
 
-## 8. Références du Code
+## 7. Références du Code
 
 ### Structure des fichiers
 ```
