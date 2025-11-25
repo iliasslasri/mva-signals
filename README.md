@@ -23,13 +23,13 @@ Pour améliorer la généralisation, nous avons implémenté deux techniques d'a
 
 1. **Rotation I/Q aléatoire** : Rotation aléatoire du signal dans l'espace I/Q (angle entre 0 et 2π)
    - Simule les variations de phase inhérentes aux transmissions radio
-   - Appliquée avec probabilité 100%
+   - Appliquée tout le temps.
 
 2. **Dégradation SNR adaptative** : Ajout de bruit pour simuler des conditions plus difficiles
    - SNR 30 dB → peut être dégradé en 20, 10 ou 0 dB
    - SNR 20 dB → peut être dégradé en 10 ou 0 dB
    - SNR 10 dB → peut être dégradé en 0 dB
-   - Appliquée avec probabilité 50%
+   - cette augmentation est appliquée avec probabilité 50%
 
 **Impact de l'augmentation** :
 - Accélération de la convergence (1/3 du temps d'entraînement)
