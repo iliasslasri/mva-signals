@@ -8,9 +8,8 @@ from torch.utils.tensorboard import SummaryWriter
 from torchinfo import summary
 
 from dataset import SignalsDataset
-from dump_model import DumpSignalModel
-from utils import count_n_param
-from cnn_lstm_models import CNN_LSTM_SNR_Model, STFT_CNN_LSTM_SNR_Model
+from models import DumpSignalModel, CNN_LSTM_SNR_Model, STFT_CNN_LSTM_SNR_Model
+
 
 def save_checkpoint(model, optimizer, epoch, loss, path):
     torch.save(
@@ -123,7 +122,7 @@ def main():
     
     # Build model
     model = CNN_LSTM_SNR_Model(n_classes=6, n_channels=2, hidden_size=64, include_snr=include_snr)
-    print(f"Model has {count_n_param(model):,} parameters")
+    print(f"Model has {sum([p.numel() for p in model.parameters()]):,} parameters")
     model.train()
 
     # ----------------------------
