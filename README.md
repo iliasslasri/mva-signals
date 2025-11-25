@@ -66,7 +66,7 @@ SNR: [Batch, 1] (valeur du SNR)
 - Extraction de features par CNN 1D
 - Modélisation des dépendances temporelles par LSTM bidirectionnel
 - Intégration du SNR comme information contextuelle
-- ~200K paramètres
+- 96,902 paramètres
 
 ### 3.2 Modèles alternatifs explorés
 
