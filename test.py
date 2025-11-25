@@ -1,7 +1,7 @@
 import torch
 from torch.utils.data import DataLoader
 from dataset import SignalsDataset
-from models import CNN_LSTM_SNR_Model
+from cnn_lstm_models import CNN_LSTM_SNR_Model
 import numpy as np
 import argparse
 import os

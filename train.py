@@ -8,10 +8,9 @@ from torch.utils.tensorboard import SummaryWriter
 from torchinfo import summary
 
 from dataset import SignalsDataset
-from DSFT_model import DSFTSignalModel
 from dump_model import DumpSignalModel
 from utils import count_n_param
-from models import CNN_LSTM_SNR_Model, STFT_CNN_LSTM_SNR_Model
+from cnn_lstm_models import CNN_LSTM_SNR_Model, STFT_CNN_LSTM_SNR_Model
 
 def save_checkpoint(model, optimizer, epoch, loss, path):
     torch.save(
