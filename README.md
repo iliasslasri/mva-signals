@@ -22,7 +22,7 @@ La difficulté majeure réside dans la variabilité du rapport signal sur bruit 
 Pour améliorer la généralisation, nous avons implémenté deux techniques d'augmentation :
 
 1. **Rotation I/Q aléatoire** : Rotation aléatoire du signal dans l'espace I/Q (angle entre 0 et 2π)
-   - Simule les variations de phase inhérentes aux transmissions radio
+   - Simule une phase aleatoire inhérente aux transmissions radio pour que le modele n'apprend pas de feature sur la phase
    - Appliquée tout le temps.
 
 2. **Dégradation SNR adaptative** : Ajout de bruit pour simuler des conditions plus difficiles
@@ -106,15 +106,12 @@ Trois approches testées :
    - Testée pour voir si l'entrainement du modèle est degradée a cause de la difficulite des  échantillons avec 0dB, la conclusion est que cela ne change pas la performance du modele sur la validation, on constate meme une légère dégradation les performances globales.
 
 ### 4.3. Entraînement extensive pour une meilleure performance
+<p align="center">
   <img src="./test_results/training_csv/val_acc_all_snr_ma.png" width="500">
+</p>
 
 Les plateaux intermédiaires observés dans le graphe de validation accuracy peuvent s’expliquer par le processus d’apprentissage du modèle. Au début de l’entraînement, le modèle apprend rapidement les motifs les plus évidents, ce qui entraîne une hausse rapide de l’accuracy. Ensuite, à mesure qu’il rencontre des exemples plus complexes ou moins fréquents dans les données, il doit ajuster ses représentations internes pour mieux les capturer. Cette phase d’ajustement se traduit par un ralentissement temporaire de l’accuracy, créant des plateaux. Une fois que le modèle réussit à intégrer ces nouvelles structures et variations, l’accuracy reprend sa progression jusqu’à atteindre une performance stable sur l’ensemble de validation. Ces plateaux reflètent donc la phase de consolidation et d’adaptation du modèle aux aspects plus complexes des données.
 
-
-### 4.4 Suivi des entrainements et validation
-- TensorBoard pour le monitoring en temps réel
-- Métriques par SNR et par classe à chaque epoch
-- Sauvegarde des checkpoints réguliers
 
 ## 5. Résultats
 
@@ -171,7 +168,6 @@ Test Accuracy : 86.57%
 
 ## 6. Conclusions et Perspectives
 
-
 Le projet a permis de développer un système de classification robuste atteignant 89% d'accuracy globale, avec d'excellentes performances à SNR élevé (>99% à 20-30 dB).
 
 Apports de l'approche:  
@@ -185,16 +181,12 @@ Apports de l'approche:
 ### Structure des fichiers
 ```
 .
-├── train.py              # Script d'entraînement principal
-├── test.py          # Évaluation sur test set
+├── train.py 
+├── test.py
 ├── dataset.py            # DataLoader et augmentation
-├── models.py             # Architecture CNN-LSTM-SNR
-├── Other_model.py        # ResNet et modèles STFT
-├── dump_model.py         # Modèle CNN simple
-├── utils.py              # Utilitaires
-├── README.md             # Résultats et remarques
-├── test_results          # Résultats des modèles
-└── .gitignore            # Configuration Git
+├── models.py
+├── README.md
+└── test_results          # quelques résultats des modèles
 ```
 
 ### Commandes principales
@@ -208,8 +200,7 @@ python train.py --load runs/checkpoints/checkpoint.pt  # Reprendre depuis checkp
 **Évaluation** :
 ```bash
 python test.py --checkpoint runs/20241121-123456_run/checkpoint.pt \
-                    --test test.hdf5 \
-                    --class_names BPSK QPSK 8PSK 16QAM 64QAM GMSK
+                    --test test.hdf5
 ```
 
 ---
